@@ -1279,16 +1279,22 @@ function mkImport(){
       const statText=slot==='metrics'?`${data.matched}/${data.total} agents matched`
         :slot==='badSat'?`${data.count} bad tickets`
         :`${data.poor} poor / ${data.total} rated`;
-      const warnHtml=data.unmatched?.length?`<div style="margin-top:6px;font-size:10.5px;color:var(--yellow)">⚠ Unmatched: ${data.unmatched.join(', ')}</div>`:'';
-      return`<div style="background:rgba(45,217,138,.06);border:1.5px solid rgba(45,217,138,.3);border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:5px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:16px">${icon}</span>
-          <div style="flex:1;min-width:0">
+      const warnHtml=data.unmatched?.length
+        ?`<div style="margin-top:6px;font-size:10px;color:var(--yellow);word-break:break-word;overflow:hidden;
+            max-height:72px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;">
+            ⚠ Unmatched: ${data.unmatched.join(', ')}
+          </div>`
+        :'';
+      return`<div style="background:rgba(45,217,138,.06);border:1.5px solid rgba(45,217,138,.3);
+        border-radius:var(--radius);padding:12px 14px;overflow:hidden;min-width:0;box-sizing:border-box;">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="font-size:16px;flex-shrink:0">${icon}</span>
+          <div style="flex:1;min-width:0;overflow:hidden">
             <div style="font-size:11.5px;font-weight:600;color:var(--green)">✓ ${title}</div>
             <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${data.fileName}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:${color}">${statText}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:${color};white-space:nowrap">${statText}</div>
             <button onclick="_clearPendingSlot('${slot}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0;margin-top:2px">✕ Remove</button>
           </div>
         </div>
@@ -1321,7 +1327,7 @@ function mkImport(){
 
   <!-- ── NEW WEEK UPLOADER ── -->
   <div class="section-header"><div class="section-title">📤 Upload a New Week</div></div>
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;overflow:hidden;box-sizing:border-box;min-width:0">
 
     <!-- Step 1: Label + dates -->
     <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap">
