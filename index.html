@@ -58,8 +58,8 @@
   .nav-sub .nav-item.active{color:var(--accent);border-left-color:var(--accent);}
 
   /* MAIN */
-  .main{flex:1;overflow:auto;}
-  .page{display:none;padding:28px 32px;animation:fadeIn .18s ease;}
+  .main{flex:1;overflow:auto;min-width:0;}
+  .page{display:none;padding:28px 32px;animation:fadeIn .18s ease;max-width:100%;box-sizing:border-box;}
   .page.active{display:block;}
   @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
@@ -239,7 +239,7 @@
   .doc-item{display:flex;align-items:center;gap:9px;padding:7px 9px;background:var(--surface2);
     border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:5px;}
   .doc-icon-el{font-size:17px;flex-shrink:0;}
-  .doc-info{flex:1;min-width:0;}
+  .doc-info{flex:1;min-width:0;overflow:hidden;}
   .doc-name{font-size:12px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .doc-meta{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:1px;}
   .doc-dl{background:none;border:none;cursor:pointer;color:var(--accent);font-size:13px;padding:2px 4px;flex-shrink:0;}
@@ -549,7 +549,7 @@
   .import-drop input{display:none;}
 
   /* 3-zone import cards */
-  .import-zones{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+  .import-zones{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;min-width:0;}
   @media(max-width:880px){.import-zones{grid-template-columns:1fr;}}
   .import-zone-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
     padding:14px 16px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s;}
@@ -1340,7 +1340,7 @@ function mkImport(){
     </div>
 
     <!-- Step 2: Three upload slots -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;min-width:0;overflow:hidden">
       ${uploadSlot('metrics','📊','var(--accent)','Agent Metrics','ZD CSAT · IPH · OTR · Productivity',m)}
       ${uploadSlot('badSat','🔴','var(--red)','ZD Bad Sat Tickets','Semicolon-delimited ZD export',bs)}
       ${uploadSlot('tidio','💬','var(--accent2)','Tidio Surveys','Full Tidio conversation export',ti)}
@@ -2172,14 +2172,15 @@ function mkCsatTrendChart(key,history){
         font-family:'DM Mono',monospace;transition:all .15s">${r.label}</button>`
   ).join('');
 
-  // Store data on element via JSON for JS access
-  const dataJson=JSON.stringify(allWeeks).replace(/"/g,'&quot;');
+  // Store week data in a JS map keyed by uid so no encoding issues
+  if(!window._csatTrendData)window._csatTrendData={};
+  window._csatTrendData[uid]=allWeeks;
 
   return`<div class="section-header" style="margin-top:4px">
     <div class="section-title">📈 Performance Trends</div>
     <div style="display:flex;gap:4px">${rangeBtns}</div>
   </div>
-  <div id="${uid}" data-weeks="${dataJson}" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+  <div id="${uid}" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
     ${renderCsatTrendSvg(uid+'_zd','ZD CSAT Trend',allWeeks,'zd',95)}
     ${renderCsatTrendSvg(uid+'_ti','Tidio CSAT Trend',allWeeks,'ti',90)}
   </div>`;
@@ -2188,16 +2189,34 @@ function mkCsatTrendChart(key,history){
 function filterCsatTrend(uid,weeks,btn){
   const container=document.getElementById(uid);
   if(!container)return;
-  // Update button styles
-  container.parentElement.querySelectorAll('[id^="'+uid+'_r_"]').forEach(b=>{
+
+  // Update button styles — buttons are siblings inside the section-header, search from grandparent
+  const root=container.parentElement||document;
+  root.querySelectorAll('[id^="'+uid+'_r_"]').forEach(b=>{
     b.style.background='var(--surface2)';b.style.color='var(--text3)';b.style.borderColor='var(--border)';
   });
   btn.style.background='rgba(79,142,247,.15)';btn.style.color='var(--accent)';btn.style.borderColor='var(--accent)';
-  // Parse stored data
-  let allWeeks=[];
-  try{allWeeks=JSON.parse(container.dataset.weeks.replace(/&quot;/g,'"'));}catch(e){return;}
-  // Slice to range
-  const filtered=weeks>=9999?allWeeks:allWeeks.slice(-Math.max(weeks,1));
+
+  // Read data from JS store
+  const allWeeks=(window._csatTrendData&&window._csatTrendData[uid])||[];
+
+  // Filter by actual date range (days from most recent point)
+  let filtered=allWeeks;
+  if(weeks<9999&&allWeeks.length>0){
+    const maxDays=weeks*7; // weeks → days
+    // Find the most recent date string
+    const sortedByDate=[...allWeeks].filter(w=>w.dateStr).sort((a,b)=>b.dateStr.localeCompare(a.dateStr));
+    const newestDate=sortedByDate[0]?.dateStr;
+    if(newestDate){
+      const cutoff=new Date(newestDate);
+      cutoff.setDate(cutoff.getDate()-maxDays);
+      filtered=allWeeks.filter(w=>{
+        if(!w.dateStr)return true; // keep undated entries
+        return new Date(w.dateStr)>=cutoff;
+      });
+    }
+  }
+
   container.innerHTML=
     renderCsatTrendSvg(uid+'_zd','ZD CSAT Trend',filtered,'zd',95)+
     renderCsatTrendSvg(uid+'_ti','Tidio CSAT Trend',filtered,'ti',90);
